@@ -5,7 +5,7 @@ plugins {
     application
 }
 
-group = "me.user"
+group = "com.codespitz.programming"
 version = "1.0-SNAPSHOT"
 
 repositories {
