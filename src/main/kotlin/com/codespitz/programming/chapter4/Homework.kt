@@ -30,12 +30,7 @@ private sealed class Element {
     }
     private class ArrayElement(private val array: Array<*>) : Element() {
         override fun value(): String = arrayStringify(array) { elements ->
-            SingleElement("[%s]".format(
-                elements.fold("") { accStr, v -> "${accStr},${v.value()}" }
-                    .takeIf { it.isNotBlank() }
-                    ?.substring(startIndex = 1)
-                    ?: ""
-            ))
+            SingleElement(elements.joinTo(prefix = "[", postfix = "]"))
         }
     }
     private class FieldPairElement(private val fieldPair: FieldPair) : Element() {
@@ -51,12 +46,7 @@ private sealed class Element {
             .filter { (_, v) -> v !== any }
             .map { (name, v) -> FieldPair(name, of(v)) }
             .toTypedArray()) { elements ->
-            SingleElement("{%s}".format(
-                elements.fold("") { accStr, v -> "${accStr},${v.value()}" }
-                    .takeIf { it.isNotBlank() }
-                    ?.substring(startIndex = 1)
-                    ?: ""
-            ))
+            SingleElement(elements.joinTo(prefix = "{", postfix = "}"))
         }
     }
 
@@ -74,6 +64,16 @@ private sealed class Element {
             is Array<*> -> ArrayElement(target)
             else -> DefaultElement(target)
         }
+
+        private fun Array<Element>.joinTo(
+            prefix: String,
+            postfix: String
+        ): String = "${prefix}%s${postfix}".format(
+            fold("") { accStr, v -> "${accStr},${v.value()}" }
+                .takeIf { it.isNotBlank() }
+                ?.substring(startIndex = 1)
+                ?: ""
+        )
     }
 }
 
