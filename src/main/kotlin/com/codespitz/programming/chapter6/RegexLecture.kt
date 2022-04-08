@@ -23,7 +23,7 @@ package com.codespitz.programming.chapter6
 // ab | bb 결합연산자는 선택연산자보다 우선순위가 높음.
 
 // 그룹 () 하나의 문자로 인식
-// a + (abce) + b = a + [abce] + b = a[abce]b
+// a + (a|b|c|e) + b = a + [abce] + b = a[abce]b
 
 // . 아무런 문자 (공백도 포함)
 // [^] not
