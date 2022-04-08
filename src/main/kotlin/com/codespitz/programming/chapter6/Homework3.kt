@@ -4,33 +4,6 @@ import kotlin.collections.Iterator
 
 // 과제 3 - 기존 작성한 stringify 가 오브젝트인 경우 toJson 을 구현하고 있으면 그걸 이용해 stringify 가 되도록 보수
 
-fun main() {
-    println(stringify({ a: Int, b: Int -> a + b }))
-    println(
-        stringify(
-            mapOf(
-                Track(trackId = 1, title = "Butter", artistName = "BTS") to 2,
-                "Hello" to 10,
-                4 to 5,
-                4L to 6
-            )
-        )
-    )
-    println(
-        stringify(
-            Album(
-                albumId = 50,
-                title = "BEST of K-pop",
-                tracks = arrayOf(
-                    Track(trackId = 1, title = "Butter", artistName = "BTS"),
-                    Track(trackId = 2, title = "Dynamite", artistName = "BTS"),
-                    Track(trackId = 3, title = "Brave", artistName = null),
-                ),
-            )
-        )
-    )
-}
-
 fun stringify(any: Any?): String {
     return Element.of(any).toJsonString()
 }
@@ -75,7 +48,7 @@ private sealed class Element {
                     }
                 })
             }
-            is JsonSerializable -> SingleElement { any.toJsonString() }
+            is JsonSerializable -> StringElement(any.toJsonString())
             is ElementEntry -> EntryElement(any)
             else -> {
                 DictionaryElement(iterator {
@@ -173,4 +146,31 @@ private val iteratorStringify: (iterator: Iterator<*>, jsonFormatter: ((Node) ->
     }
 
     ({ arr, jsonFormatter -> recursive(arr, Node.Empty, preContext = null, toJsonString = jsonFormatter) })
+}
+
+fun main() {
+    println(stringify({ a: Int, b: Int -> a + b }))
+    println(
+        stringify(
+            mapOf(
+                Track(trackId = 1, title = "Butter", artistName = "BTS") to 2,
+                "Hello" to 10,
+                4 to 5,
+                4L to 6
+            )
+        )
+    )
+    println(
+        stringify(
+            Album(
+                albumId = 50,
+                title = "BEST of K-pop",
+                tracks = arrayOf(
+                    Track(trackId = 1, title = "Butter\"", artistName = "BTS"),
+                    Track(trackId = 2, title = "Dynamite", artistName = "BTS"),
+                    Track(trackId = 3, title = "Brave", artistName = null),
+                ),
+            )
+        )
+    )
 }
