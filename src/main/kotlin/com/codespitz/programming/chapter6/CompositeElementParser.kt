@@ -3,6 +3,7 @@ package com.codespitz.programming.chapter6
 class CompositeElementParser(
     private val elementParsers: Iterable<ElementParser>
 ) : ElementParser {
+    // chain of responsibility.
     override fun convert(value: String): ElementParseResult = elementParsers.asSequence()
         .map { elementParser -> elementParser.convert(value) }
         .find { elementResult -> elementResult.isSuccess() }

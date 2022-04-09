@@ -20,7 +20,7 @@ private val parseArrayInternal: (target: String, elementParser: ElementParser) -
         val context: Context?
     )
 
-    fun parseArray(target: String, acc: Array<Any?>, context: Context?, elementParser: ElementParser): Array<*> {
+    tailrec fun parseArray(target: String, acc: Array<Any?>, context: Context?, elementParser: ElementParser): Array<*> {
         val v: String = target.trim()
         return if (v.isEmpty()) acc
         else {
