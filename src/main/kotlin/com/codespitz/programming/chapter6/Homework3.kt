@@ -1,8 +1,10 @@
 package com.codespitz.programming.chapter6
 
+import java.util.Date
 import kotlin.collections.Iterator
 
 // 과제 3 - 기존 작성한 stringify 가 오브젝트인 경우 toJson 을 구현하고 있으면 그걸 이용해 stringify 가 되도록 보수
+// 과제 4 - Date 의 json 인 경우 date 를 복원한다.
 
 fun stringify(any: Any?): String {
     return Element.of(any).toJsonString()
@@ -48,6 +50,7 @@ private sealed class Element {
                     }
                 })
             }
+            is Date -> StringElement(any.toString())
             is JsonSerializable -> StringElement(any.toJsonString())
             is ElementEntry -> EntryElement(any)
             else -> {
@@ -156,8 +159,8 @@ fun main() {
                 Track(trackId = 1, title = "Butter", artistName = "BTS") to 2,
                 "Hello" to 10,
                 4 to 5,
-                4L to 6
-            )
+                4L to 6,
+            ),
         )
     )
     println(
@@ -173,4 +176,5 @@ fun main() {
             )
         )
     )
+    println(stringify(arrayOf(Date())))
 }

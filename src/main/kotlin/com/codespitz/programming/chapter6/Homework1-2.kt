@@ -1,12 +1,16 @@
 package com.codespitz.programming.chapter6
 
+import java.util.Date
+
 // 과제 1 - 모든 값 타입을 인식하여 파싱하는 중첩된 배열문자열 파서
 // 과제 2 - 나만의 클래스타입을 인식하여 해당 클래스의 인스턴스를 만들어 넣어주는 기능 추가
+// 과제 4 - Date 의 json 인 경우 date 를 복원한다.
 
 private val primitiveElementParser: ElementParser = CompositeElementParser.of(
     RegexElementParser(regex = "^\\s*([0-9])+\\s*,?".toRegex(), onParsing = { it.toLong() }),
     RegexElementParser(regex = "^\\s*(true|false)+\\s*,?".toRegex(), onParsing = { it.toBoolean() }),
     RegexElementParser(regex = "^\\s*(null)+\\s*,?".toRegex(), onParsing = { null }),
+    DateElementParser(),
     StringElementParser()
 )
 
@@ -81,6 +85,7 @@ fun main() {
         2,
         true,
         4,
+        Date(),
         arrayOf(
             "Request Array\"\n ggg ",
             Album(
