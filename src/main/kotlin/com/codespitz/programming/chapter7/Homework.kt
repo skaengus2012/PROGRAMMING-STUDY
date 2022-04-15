@@ -1,7 +1,5 @@
 package com.codespitz.programming.chapter7
 
-import java.lang.IllegalStateException
-
 /**
  * @author Doohyun
  */
@@ -43,64 +41,87 @@ private val htmlParser: (String) -> HtmlObject = run {
         val context: HtmlContext? = null
     )
 
-    tailrec fun parseHtml(text: String, curElement: HtmlElement?, context: HtmlContext?): HtmlObject? {
+    data class NextParameter(
+        val text: String,
+        val curElement: HtmlElement?,
+        val context: HtmlContext?
+    )
+
+    val parseChains = listOf(
+        startTagRegex to { v: String, curElement: HtmlElement?, context: HtmlContext? ->
+            { startTagMatchResult: MatchResult ->
+                val (rawStr: String, captureValue: String) = startTagMatchResult.groupValues
+                val captureSplits: List<String> = captureValue.splitByBlank()
+                val openObject = HtmlElement(
+                    tagName = requireNotNull(captureSplits.firstOrNull()) { "Cannot found open tag -> $v" },
+                    rawString = rawStr,
+                    fields = fieldParser(captureSplits.subList(fromIndex = 1, toIndex = captureSplits.size))
+                )
+                val (nextElement: HtmlElement?, nextContext: HtmlContext?) =
+                    if (captureValue.endsWith("/"))
+                        curElement?.copy(child = curElement.child + openObject,
+                            rawString = openObject.rawString
+                        ) to context
+                    else openObject to if (curElement == null) context else HtmlContext(curElement, context)
+
+                NextParameter(v.substring(rawStr.length), nextElement, nextContext)
+            }
+        },
+
+        endTagRegex to { v: String, curElement: HtmlElement?, context: HtmlContext? ->
+            { endTagMatchResult: MatchResult ->
+                val (rawStr: String, captureValue: String) = endTagMatchResult.groupValues
+                val closeName: String =
+                    requireNotNull(captureValue.splitByBlank().firstOrNull()) { "Cannot found close tag -> $v" }
+                val closedObject: HtmlObject = when {
+                    curElement == null -> HtmlText(rawStr)
+                    curElement.tagName == closeName -> curElement.copy(rawString = curElement.rawString + rawStr)
+                    else -> HtmlText(text = curElement.rawString + rawStr)
+                }
+                if (context == null) closedObject
+                else {
+                    val (beforeElement, beforeContext) = context
+                    NextParameter(
+                        v.substring(rawStr.length),
+                        beforeElement.copy(
+                            child = beforeElement.child + closedObject,
+                            rawString = beforeElement.rawString + closedObject.rawString
+                        ),
+                        beforeContext
+                    )
+                }
+            }
+        },
+
+        descriptionRegex to { v: String, curElement: HtmlElement?, context: HtmlContext? ->
+            { descriptionMatchResult: MatchResult ->
+                val captureValue: String = descriptionMatchResult.groupValues[1]
+                val nextElement: HtmlElement? = curElement?.copy(
+                    child = curElement.child + HtmlText(captureValue),
+                    rawString = curElement.rawString + captureValue
+                )
+
+                NextParameter(text = v.substring(captureValue.length), nextElement, context)
+            }
+        }
+    )
+
+    tailrec fun parseHtml(
+        text: String,
+        curElement: HtmlElement?,
+        context: HtmlContext?
+    ): HtmlObject? {
         val v: String = text.trim()
         if (v.isBlank()) return curElement
 
-        val startTagMatchResult: MatchResult? = startTagRegex.find(v)
-        if (startTagMatchResult != null) {
-            val (rawStr: String, captureValue: String) = startTagMatchResult.groupValues
-            val captureSplits: List<String> = captureValue.splitByBlank()
-            val openObject = HtmlElement(
-                tagName = requireNotNull(captureSplits.firstOrNull()) { "Cannot found open tag -> $v" },
-                rawString = rawStr,
-                fields = fieldParser(captureSplits.subList(fromIndex = 1, toIndex = captureSplits.size))
-            )
-            val (nextElement: HtmlElement?, nextContext: HtmlContext?) =
-                if (captureValue.endsWith("/"))
-                    curElement?.copy(child = curElement.child + openObject, rawString = openObject.rawString) to context
-                else openObject to if (curElement == null) context else HtmlContext(curElement, context)
-            return parseHtml(text = v.substring(rawStr.length), nextElement, nextContext)
+        return when (val next = parseChains
+            .asSequence()
+            .map { (regex, next) -> regex.find(v)?.let { matcher -> next(v, curElement, context)(matcher) } }
+            .find { it != null }) {
+            is HtmlObject -> next
+            is NextParameter -> parseHtml(next.text, next.curElement, next.context)
+            else -> throw IllegalStateException("Failed to parse -> $v")
         }
-
-        val endTagMatchResult: MatchResult? = endTagRegex.find(v)
-        if (endTagMatchResult != null) {
-            val (rawStr: String, captureValue: String) = endTagMatchResult.groupValues
-            val closeName: String =
-                requireNotNull(captureValue.splitByBlank().firstOrNull()) { "Cannot found close tag -> $v" }
-            val nextText = v.substring(rawStr.length)
-            val closedObject: HtmlObject = when {
-                curElement == null -> HtmlText(rawStr)
-                curElement.tagName == closeName -> curElement.copy(rawString = curElement.rawString + rawStr)
-                else -> HtmlText(text = curElement.rawString + rawStr)
-            }
-            return if (context == null) closedObject
-            else {
-                val (beforeElement, beforeContext) = context
-                parseHtml(
-                    nextText,
-                    curElement = beforeElement.copy(
-                        child = beforeElement.child + closedObject,
-                        rawString = beforeElement.rawString + closedObject.rawString
-                    ),
-                    beforeContext
-                )
-            }
-        }
-
-        val descriptionMatchResult: MatchResult? = descriptionRegex.find(v)
-        if (descriptionMatchResult != null) {
-            val captureValue: String = descriptionMatchResult.groupValues[1]
-            val nextText = v.substring(captureValue.length)
-            val nextElement: HtmlElement? = curElement?.copy(
-                child = curElement.child + HtmlText(captureValue),
-                rawString = curElement.rawString + captureValue
-            )
-
-            return parseHtml(nextText, nextElement, context)
-        }
-
-        throw IllegalStateException()
     }
 
     ({ str -> parseHtml(str, curElement = null, context = null) ?: HtmlText(str) })
