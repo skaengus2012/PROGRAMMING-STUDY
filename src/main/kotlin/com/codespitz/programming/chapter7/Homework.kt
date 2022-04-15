@@ -13,7 +13,7 @@ fun main() {
     // <*> 가 등장 => Element 를 만들다. 이전의 Element 는 스택에 추가한다.
     // </*> 가 등장 => 현재 Element 를 마무리한다. 이전의 Element 에 현재 Element 를 추가한다.
     // 평문 : 공백을 제거한 평문이 들어오게 하자.
-
+    
     val target = """
         <html>
             <title>
@@ -32,7 +32,7 @@ fun main() {
 fun parseHtml(string: String): HtmlObject = htmlParser(string)
 
 private val fieldsRegex: Regex = "(.+)(=)(.*)".toRegex()
-private val startTagRegex: Regex = "^\\s*<([^[\\s/]].*?)>\\s*".toRegex()
+private val startTagRegex: Regex = "^\\s*<([^(\\s|/)].*?)>\\s*".toRegex()
 private val endTagRegex: Regex = "^\\s*</([^\\s].*?)>\\s*".toRegex()
 private val descriptionRegex: Regex = "^(\\s*.*?\\s*)</?(?:[^\\s]|.)+>".toRegex()
 private fun String.splitByBlank(): List<String> = trim().split(" ").filter { it.isNotBlank() }
