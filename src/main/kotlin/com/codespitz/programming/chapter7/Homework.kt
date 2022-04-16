@@ -78,12 +78,13 @@ private val htmlParser: (String) -> HtmlObject = run {
             { endTagMatchResult: MatchResult ->
                 val (rawStr: String, captureValue: String) = endTagMatchResult.groupValues
                 val closeName: String = captureValue.splitByBlank().first()
-                val closedObject: HtmlObject =
-                    if (curElement.tagName == closeName) curElement.copy(rawString = curElement.rawString + rawStr)
-                    else HtmlText(curElement.rawString + rawStr)
-                if (context == null) {
-                    curElement.withChild(closedObject)
-                } else {
+                check(curElement.tagName == closeName) {
+                    "close tag name was wrong. [open : ${curElement.tagName}, close = ${closeName}]"
+                }
+
+                val closedObject: HtmlElement = curElement.copy(rawString = curElement.rawString + rawStr)
+                if (context == null) closedObject
+                else {
                     val (beforeElement, beforeContext) = context
                     NextParameter(v.substring(rawStr.length), beforeElement.withChild(closedObject), beforeContext)
                 }
@@ -102,10 +103,10 @@ private val htmlParser: (String) -> HtmlObject = run {
         text: String,
         curElement: HtmlElement,
         context: HtmlContext?,
-    ): HtmlElement? {
+    ): HtmlElement {
         val v: String = text.trim()
         return if (v.isBlank()) {
-            require(context == null) { "Document was end with not closed tag" }
+            check(context == null) { "Document was end with unclosed tag" }
             curElement
         } else {
             when (val next = parseChains
@@ -115,18 +116,16 @@ private val htmlParser: (String) -> HtmlObject = run {
             ) {
                 is HtmlElement -> next
                 is NextParameter -> parseHtml(next.text, next.curElement, next.context)
-                else -> throw IllegalArgumentException("Parsing was failed by -> $v")
+                else -> throw IllegalArgumentException("Parsing was failed by [$v]")
             }
         }
     }
 
     ({ str ->
-        runCatching { parseHtml(str, curElement = HtmlElement(tagName = "", rawString = ""), context = null) }
-            .getOrNull()
-            ?.child
-            ?.takeIf { it.size == 1 }
-            ?.first()
-            ?: HtmlText(str)
+        parseHtml(str, curElement = HtmlElement(tagName = "", rawString = ""), context = null)
+            .child
+            .firstOrNull()
+            .let { checkNotNull(it) { "Document was empty. [$str]" } }
     })
 }
 
